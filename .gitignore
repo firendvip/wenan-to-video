@@ -1,0 +1,26 @@
+# 密钥（绝不提交）
+llm.json
+
+# 运行时用户状态（含本机绝对路径）
+settings.json
+
+# 产物与缓存
+jobs/
+__pycache__/
+*.pyc
+*.pyo
+
+# 音色样本 / 媒体（隐私，不公开）
+uploads/*
+!uploads/.gitkeep
+*.wav
+*.mp4
+*.mov
+*.m4a
+
+# 依赖 / 系统
+node_modules/
+.venv/
+venv/
+.DS_Store
+*.log
