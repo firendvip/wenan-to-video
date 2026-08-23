@@ -2,23 +2,48 @@
 # -*- coding: utf-8 -*-
 """集中所有锁定的路径与参数（BUILD_SPEC §2 锁定默认值）。"""
 import os
+import shutil
 
-# ---- 绝对路径（本机已验证）----
+
+def _tool(env: str, name: str, *candidates: str) -> str:
+    """解析外部可执行文件路径，保证跨机可移植：
+    环境变量 > 已存在的候选路径 > PATH(which) > 裸名(留给 PATH 运行时解析)。"""
+    v = os.environ.get(env)
+    if v:
+        return v
+    for c in candidates:
+        if c and os.path.isfile(c):
+            return c
+    w = shutil.which(name)
+    if w:
+        return w
+    return name
+
+
+# ---- 路径（相对定位，不再硬编码某台机器）----
 HERE = os.path.dirname(os.path.abspath(__file__))          # .../webapp/engine
 WEBAPP_DIR = os.path.dirname(HERE)                          # .../webapp
 JOBS_DIR = os.path.join(WEBAPP_DIR, "jobs")
 UPLOADS_DIR = os.path.join(WEBAPP_DIR, "uploads")
 SETTINGS_PATH = os.path.join(WEBAPP_DIR, "settings.json")
 
-UV = "/Users/Admin/.hermes/bin/uv"
-FFMPEG = "/Users/Admin/.hermes/bin/ffmpeg"
-FFPROBE = "/opt/homebrew/bin/ffprobe"
+# 外部可执行文件：可用同名大写环境变量覆盖（UV_BIN / FFMPEG_BIN / FFPROBE_BIN / CLAUDE_BIN）
+UV = _tool("UV_BIN", "uv",
+           os.path.expanduser("~/.hermes/bin/uv"),
+           os.path.expanduser("~/.local/bin/uv"))
+FFMPEG = _tool("FFMPEG_BIN", "ffmpeg",
+               os.path.expanduser("~/.hermes/bin/ffmpeg"),
+               "/opt/homebrew/bin/ffmpeg", "/usr/local/bin/ffmpeg")
+FFPROBE = _tool("FFPROBE_BIN", "ffprobe",
+                "/opt/homebrew/bin/ffprobe", "/usr/local/bin/ffprobe")
 SHOT_JS = os.path.join(HERE, "shot.js")
 
-INDEXTTS_DIR = "/Users/Admin/index-tts"
+# IndexTTS 安装目录：环境变量 INDEXTTS_DIR 覆盖，否则默认 ~/index-tts
+INDEXTTS_DIR = os.environ.get("INDEXTTS_DIR") or os.path.expanduser("~/index-tts")
 GEN_JOB = "gen_job.py"                                      # 相对 INDEXTTS_DIR 执行
 
-CLAUDE_BIN = "/Users/Admin/.local/bin/claude"              # 提炼备选（本机 claude CLI）
+CLAUDE_BIN = _tool("CLAUDE_BIN", "claude",
+                   os.path.expanduser("~/.local/bin/claude"))   # 提炼备选（本机 claude CLI）
 PROMPT_PATH = os.path.join(WEBAPP_DIR, "prompts", "distill_plan.md")
 
 

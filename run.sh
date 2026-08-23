@@ -3,7 +3,15 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-UV="/Users/Admin/.hermes/bin/uv"
+# uv 解析：环境变量 UV_BIN > 常见安装位置 > PATH
+UV="${UV_BIN:-}"
+if [ -z "$UV" ]; then
+  for c in "$HOME/.hermes/bin/uv" "$HOME/.local/bin/uv"; do
+    [ -x "$c" ] && UV="$c" && break
+  done
+fi
+[ -z "$UV" ] && UV="$(command -v uv || true)"
+[ -z "$UV" ] && { echo "错误：找不到 uv，请安装或设 UV_BIN 环境变量"; exit 1; }
 HOST="127.0.0.1"
 PORT="${PORT:-8000}"
 

@@ -47,7 +47,7 @@ webapp/
 └── jobs/<id>/          # 每个任务的中间产物与 final.mp4（运行时生成）
 ```
 
-TTS 脚本在 `~/index-tts/gen_job.py`（必须在该目录用 uv 跑，含 torch/MPS + IndexTTS 2.0）。
+TTS 脚本默认在 `~/index-tts/gen_job.py`（必须在该目录用 uv 跑，含 torch/MPS + IndexTTS 2.0）；可用 `INDEXTTS_DIR` 指向其他位置。
 
 ## 锁定参数（不可改）
 
@@ -57,12 +57,19 @@ TTS 脚本在 `~/index-tts/gen_job.py`（必须在该目录用 uv 跑，含 torc
 - **字幕**：PingFang SC 96 加粗、白字+黑描边(Outline6)+阴影2、**强制单行**、MarginV140、逐条按语音时长比例。
 - **音频**：`loudnorm I=-14:TP=-1.5:LRA=11`、立体声、aac 192k、faststart。
 
-## 依赖 / 环境（本机已验证）
+## 依赖 / 环境（可移植）
 
-- IndexTTS 2.0：`~/index-tts`（uv 管理的 venv，含 torch/MPS）。
-- ffmpeg（含 libass）：`/Users/Admin/.hermes/bin/ffmpeg`；ffprobe：`/opt/homebrew/bin/ffprobe`。
-- 截图：全局 playwright（`npm root -g` 下的 playwright），Node 运行。
-- Web：`uv run --with fastapi --with "uvicorn[standard]" --with python-multipart uvicorn`。
+外部工具路径**不再硬编码**，按此顺序解析：`环境变量` → 常见安装位置 → `PATH`。在标准环境下开箱即用，非标准环境用环境变量覆盖即可。
+
+需要预先准备：
+
+- **IndexTTS 2.0**：默认 `~/index-tts`（uv 管理的 venv，含 torch/MPS，脚本 `gen_job.py`）。其他位置用 `INDEXTTS_DIR` 覆盖。
+- **ffmpeg（含 libass）+ ffprobe**：装在 PATH 即可；或用 `FFMPEG_BIN` / `FFPROBE_BIN` 指定。
+- **uv**：装在 PATH 即可；或用 `UV_BIN` 指定（`run.sh` 也识别此变量）。
+- **playwright + Node**：截图用（全局 playwright）。
+- **DeepSeek Key**：复制 `llm.json.example` 为 `llm.json` 填入，或设环境变量 `DEEPSEEK_API_KEY`。
+
+可覆盖的环境变量：`INDEXTTS_DIR`、`FFMPEG_BIN`、`FFPROBE_BIN`、`UV_BIN`、`CLAUDE_BIN`、`DEEPSEEK_API_KEY`、`PORT`。
 
 ## API
 
