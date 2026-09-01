@@ -2,6 +2,11 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/) 与 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [0.2.1] - 2026-09-01
+
+### Fixed
+- 配音与字幕不再朗读/显示 Markdown 标记：`tts_edge.strip_md` 去除 `* \` _ # ~`，正文行内加粗（`**...**`）等只保留文字。
+
 ## [0.2.0] - 2026-09-01
 
 ### Added

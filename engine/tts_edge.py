@@ -9,9 +9,17 @@
 from __future__ import annotations
 import json
 import os
+import re
 import subprocess
 
 from engine import config
+
+_MD = re.compile(r"[*`_#~]+")
+
+
+def strip_md(text: str) -> str:
+    """去除 Markdown 标记符（* ` _ # ~），保留文字；不朗读符号。"""
+    return re.sub(r"\s{2,}", " ", _MD.sub("", text or "")).strip()
 
 
 def _speakable(text: str) -> bool:
@@ -38,7 +46,7 @@ def synth(job_dir: str, voice: str | None = None, rate: str = "+0%", log=None) -
     n = len(cues)
     for k, c in enumerate(cues, 1):
         i = c["i"]
-        text = (c.get("text") or "").replace("\n", " ").strip()
+        text = strip_md((c.get("text") or "").replace("\n", " "))
         wav = os.path.join(srcd, f"seg_{i:02d}.wav")
         if not _speakable(text):
             _silence(wav)
