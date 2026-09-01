@@ -16,14 +16,19 @@ NO_START = set("，。！？、；：）】》」』”’.,!?;:)")  # 避头
 
 
 def _params() -> dict:
-    """按 config 尺寸（方向）给出字幕样式与单行折分预算。"""
+    """按 config 尺寸（方向）给出字幕样式与单行折分预算；配色随主题（暗色/亮色）。"""
     portrait = config.HEIGHT >= config.WIDTH
     if portrait:  # 竖屏 1080×1920
-        return {"fontsize": 96, "outline": 6, "shadow": 2,
-                "marginlr": 30, "marginv": 140, "single": 10.0, "hard": 10.4}
-    # 横屏 1920×1080
-    return {"fontsize": 68, "outline": 5, "shadow": 2,
-            "marginlr": 160, "marginv": 90, "single": 23.0, "hard": 24.0}
+        base = {"fontsize": 96, "marginlr": 30, "marginv": 140,
+                "single": 10.0, "hard": 10.4}
+    else:         # 横屏 1920×1080
+        base = {"fontsize": 68, "marginlr": 160, "marginv": 90,
+                "single": 23.0, "hard": 24.0}
+    th = config.SUB_THEME.get(config.THEME, config.SUB_THEME["night"])
+    base.update({"outline": th["outline"], "shadow": th["shadow"],
+                 "primary": th["primary"], "outline_col": th["outline_col"],
+                 "back": th["back"]})
+    return base
 
 
 def _ts(sec: float) -> str:
@@ -120,8 +125,8 @@ def _header(p: dict) -> str:
         "OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, "
         "ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, "
         "MarginL, MarginR, MarginV, Encoding\n"
-        f"Style: Douyin,PingFang SC,{p['fontsize']},&H00FFFFFF,&H000000FF,"
-        f"&H00000000,&H64000000,-1,0,0,0,100,100,0,0,1,{p['outline']},"
+        f"Style: Douyin,PingFang SC,{p['fontsize']},{p['primary']},&H000000FF,"
+        f"{p['outline_col']},{p['back']},-1,0,0,0,100,100,0,0,1,{p['outline']},"
         f"{p['shadow']},2,{p['marginlr']},{p['marginlr']},{p['marginv']},1\n\n"
         "[Events]\n"
         "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, "

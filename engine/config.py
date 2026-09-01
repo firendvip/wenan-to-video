@@ -46,6 +46,12 @@ CLAUDE_BIN = _tool("CLAUDE_BIN", "claude",
                    os.path.expanduser("~/.local/bin/claude"))   # 提炼备选（本机 claude CLI）
 PROMPT_PATH = os.path.join(WEBAPP_DIR, "prompts", "distill_plan.md")
 
+# ---- 配音引擎 ----
+# indextts：本机 IndexTTS 2.0 声音克隆；edge：微软 Edge TTS（免费在线，需联网）
+EDGE_TTS = _tool("EDGE_TTS_BIN", "edge-tts", os.path.expanduser("~/.local/bin/edge-tts"))
+VOICE_ENGINE_DEFAULT = os.environ.get("VOICE_ENGINE", "edge")
+EDGE_VOICE_DEFAULT = "zh-CN-XiaoxiaoNeural"   # 晓晓 · 亲和女声
+
 
 def _load_llm() -> dict:
     """本地 LLM 配置（密钥不写进源码）：webapp/llm.json 或环境变量。"""
@@ -88,6 +94,16 @@ SPEED_DEFAULT = 1.05
 # 单一固定 HTML 风格（参照 lIxflkxP6BA7cfH5pnBI8g.mp4：暖色电子杂志 · 竖屏）
 STYLES = {"magazine": "电子杂志 · 竖屏"}
 STYLE_DEFAULT = "magazine"
+
+# ---- 主题（影响画面模板与字幕配色）----
+THEME = os.environ.get("THEME", "night")   # night 暗色/睡前（默认） | day 暖色亮版
+# ASS 颜色 &HAABBGGRR。night：暖白字(#E7DAC6) + 柔和暗描边，夜里不刺眼
+SUB_THEME = {
+    "night": {"primary": "&H00C6DAE7", "outline_col": "&H00100A05",
+              "back": "&H50000000", "outline": 4, "shadow": 3},
+    "day":   {"primary": "&H00FFFFFF", "outline_col": "&H00000000",
+              "back": "&H64000000", "outline": 6, "shadow": 2},
+}
 
 
 def ffprobe_duration(path: str) -> float:

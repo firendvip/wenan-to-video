@@ -74,11 +74,16 @@ def _run_tts(job_dir: str, voice_path: str, n_cues: int) -> None:
 
 
 def run(job_id: str, text: str, voice_path: str, speed: float, style: str,
-        output_dir: str | None = None) -> str:
-    """执行整条流水线，返回保存到「视频生成路径」的绝对路径。"""
+        output_dir: str | None = None, voice_engine: str | None = None,
+        voice_name: str | None = None) -> str:
+    """执行整条流水线，返回保存到「视频生成路径」的绝对路径。
+
+    voice_engine：'edge'（微软 Edge TTS，免费在线）或 'indextts'（本机声音克隆）。
+    """
     job_dir = os.path.join(config.JOBS_DIR, job_id)
     os.makedirs(job_dir, exist_ok=True)
     output_dir = os.path.expanduser(output_dir or config.DEFAULT_OUTPUT_DIR)
+    voice_engine = voice_engine or config.VOICE_ENGINE_DEFAULT
     try:
         set_status(job_dir, stage="segment", percent=2, message="理解并提炼文案…",
                    done=False, error=None, video_url=None)
@@ -90,9 +95,17 @@ def run(job_id: str, text: str, voice_path: str, speed: float, style: str,
         n_cues = len(plan["cues"])
         n_ch = len(plan["chapters"])
 
-        set_status(job_dir, stage="tts", percent=6,
-                   message=f"加载 TTS 模型…（{n_cues} 句）")
-        _run_tts(job_dir, voice_path, n_cues)
+        if voice_engine == "edge":
+            from engine import tts_edge
+            set_status(job_dir, stage="tts", percent=8,
+                       message=f"微软配音中…（{n_cues} 句）")
+            tts_edge.synth(
+                job_dir, voice=voice_name,
+                log=lambda m: set_status(job_dir, stage="tts", percent=30, message=m))
+        else:
+            set_status(job_dir, stage="tts", percent=6,
+                       message=f"加载 TTS 模型…（{n_cues} 句）")
+            _run_tts(job_dir, voice_path, n_cues)
 
         set_status(job_dir, stage="respeed", percent=56, message=f"变速 {speed}×…")
         audio.respeed(job_dir, speed)
