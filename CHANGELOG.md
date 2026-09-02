@@ -2,6 +2,11 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/) 与 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [0.2.2] - 2026-09-02
+
+### Fixed
+- Edge TTS 长稿稳定性：逐句生成支持**断点续跑**（跳过已存在分段），失败**退避重试 5 次**，避免偶发网络/限流导致整条中断。
+
 ## [0.2.1] - 2026-09-01
 
 ### Fixed

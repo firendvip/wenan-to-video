@@ -11,6 +11,7 @@ import json
 import os
 import re
 import subprocess
+import time
 
 from engine import config
 
@@ -48,6 +49,8 @@ def synth(job_dir: str, voice: str | None = None, rate: str = "+0%", log=None) -
         i = c["i"]
         text = strip_md((c.get("text") or "").replace("\n", " "))
         wav = os.path.join(srcd, f"seg_{i:02d}.wav")
+        if os.path.isfile(wav) and os.path.getsize(wav) > 0:
+            continue   # 断点续跑：已生成的分段跳过
         if not _speakable(text):
             _silence(wav)
         else:
@@ -55,13 +58,14 @@ def synth(job_dir: str, voice: str | None = None, rate: str = "+0%", log=None) -
             cmd = [config.EDGE_TTS, "--voice", voice, "--rate", rate,
                    "--text", text, "--write-media", mp3]
             last = ""
-            for attempt in range(3):   # 长跑防偶发网络失败
+            for attempt in range(5):   # 长跑防偶发网络失败/限流：退避重试
                 r = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
                 if r.returncode == 0 and os.path.isfile(mp3) and os.path.getsize(mp3) > 0:
                     break
-                last = (r.stderr or r.stdout or "")[-200:]
+                last = (r.stderr or r.stdout or "")[-160:]
+                time.sleep(1.5 * (attempt + 1))
             else:
-                raise RuntimeError(f"edge-tts 失败 seg {i}（重试 3 次）: {last}")
+                raise RuntimeError(f"edge-tts 失败 seg {i}（重试 5 次）: {last}")
             subprocess.run([config.FFMPEG, "-y", "-loglevel", "error", "-i", mp3,
                             "-ar", "44100", "-ac", "1", wav],
                            check=True, capture_output=True)
