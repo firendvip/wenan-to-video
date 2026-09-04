@@ -4,8 +4,8 @@
 
     python engine/pipeline_cosy.py <口播稿.md> [job_id] [--speed 1.1] [--reuse <已有job>]
 
-步骤：解析稿件(停顿/放慢/分章) → CosyVoice3 逐句克隆 → 音轨装配(去换气+精确停顿+去沙哑)
-      → 暗色V2画面 → 暖白单行字幕 → 合成并保存到「视频生成路径」。
+步骤：解析稿件 → CosyVoice3 逐句克隆(气泡音/沙哑质检重掷) → 音轨装配(去换气+精确停顿+去沙哑)
+      → **自动质检**(停顿/换气/沙哑/同步) → 暗色V2画面 → 暖白单行字幕 → 合成保存。
 `--reuse` 可复用已生成的逐句配音（同一稿件重出片时免去重跑 TTS）。
 """
 from __future__ import annotations
@@ -63,6 +63,12 @@ def run(md_path: str, job_id: str | None = None, speed: float = 1.1,
 
     log('装配音轨（去换气 + 精确停顿 + 去沙哑）…')
     _venv_run('audio_build.py', src, job, str(speed))
+
+    log('音轨质检…')
+    try:
+        _venv_run('qa.py', job)
+    except RuntimeError:
+        log('⚠ 质检存在不合格项（见上方报告）')
 
     log('生成暗色画面并截图…')
     deck = render.write_deck(job, config.STYLE_DEFAULT)

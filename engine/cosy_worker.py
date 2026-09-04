@@ -4,7 +4,8 @@
 
 读取 <job_dir>/plan.json 的 cues，用零样本克隆（参考音 REF + 逐字转写 RT）逐句生成
 <job_dir>/audio_src/seg_XX.wav，供 webapp 现有 respeed/assemble/subtitles 复用。
-沿用已验证方案：每块 ≤78 字（避免内部拆分）、裁头 0.20s + despike + 淡入、气泡音重掷。
+沿用已验证方案：每块 ≤78 字（避免内部拆分）、裁头 0.20s + despike + 淡入；
+质检重掷同时看**气泡音**与**沙哑**（3–6kHz/500–2kHz 能量比），同一句多掷取最优。
 
 用法: PYTORCH_ENABLE_MPS_FALLBACK=1 ~/CosyVoice/.venv/bin/python cosy_worker.py <job_dir> [limit]
 环境可覆盖: COSY_REF, COSY_RT
@@ -25,6 +26,8 @@ RT = os.environ.get('COSY_RT', '春天的清晨，山谷里飘着薄雾，风从
 SYS = 'You are a helpful assistant.<|endofprompt|>'
 CAP = 78
 FRY_MAX, FRY_GOOD, TRIES = 2.5, 1.2, 3
+# 沙哑质检：3–6kHz 能量 / 500–2kHz 能量，越大越沙哑（同一句多掷取最低）
+HOARSE_MAX, HOARSE_GOOD = 0.60, 0.45
 
 srcd = os.path.join(JOB, 'audio_src'); os.makedirs(srcd, exist_ok=True)
 cues = json.load(open(os.path.join(JOB, 'plan.json'), encoding='utf-8'))['cues']
@@ -63,6 +66,15 @@ def clean(w):
     return w
 
 
+def hoarse(w):
+    y = w[0].numpy()
+    if len(y) < 2048:
+        return 0.0
+    S = np.abs(np.fft.rfft(y * np.hanning(len(y)))) ** 2
+    f = np.fft.rfftfreq(len(y), 1 / SR)
+    return float(S[(f >= 3000) & (f <= 6000)].sum() / (S[(f >= 500) & (f <= 2000)].sum() + 1e-12))
+
+
 def fry(w):
     y = librosa.resample(w[0].numpy(), orig_sr=SR, target_sr=16000)
     f0, _, _ = librosa.pyin(y, fmin=50, fmax=400, sr=16000, frame_length=1024, hop_length=256)
@@ -83,20 +95,21 @@ for k, c in enumerate(cues, 1):
         continue
     parts = []                                     # 停顿统一由 audio_build 精确插入
     for piece in hs(text, CAP):
-        best, bestf = None, 999
+        best, bestf, besth, bests = None, 999, 999, 1e9
         for tri in range(TRIES):
             ch = [j['tts_speech'] for j in m.inference_zero_shot(piece, SYS + RT, REF, stream=False)]
-            w = clean(torch.cat(ch, dim=1)); r = fry(w)
-            if r < bestf:
-                bestf, best = r, w
-            if r <= FRY_GOOD:
-                break
-            if tri == 0 and r <= FRY_MAX:
+            w = clean(torch.cat(ch, dim=1))
+            r, h = fry(w), hoarse(w)
+            score = h + (10.0 if r > FRY_MAX else 0.0)      # 气泡音超标重罚，其余比沙哑
+            if score < bests:
+                bests, bestf, besth, best = score, r, h, w
+            if r <= FRY_GOOD and h <= HOARSE_GOOD:          # 两项都好，收工
                 break
             if tri > 0:
                 rerolls += 1
         parts.append(best)
     torchaudio.save(out, torch.cat(parts, dim=1), SR)
-    print(f'   {k}/{len(cues)} seg{i} 气泡音{bestf:.1f}% 重掷{rerolls} 用时{(time.time()-t0)/60:.1f}分', flush=True)
+    print(f'   {k}/{len(cues)} seg{i} 气泡音{bestf:.1f}% 沙哑{besth:.2f} 重掷{rerolls} '
+          f'用时{(time.time()-t0)/60:.1f}分', flush=True)
 
 print(f'>> ALL_SEGMENTS_DONE {len(cues)}句 重掷{rerolls} 总耗时{(time.time()-t0)/60:.1f}分', flush=True)
