@@ -6,13 +6,13 @@
   1) 逐句去换气（衰减 BREATH_ATT；先做，避免气声在拼接后与停顿合并成超长静音）
   2) 句内超长静音压到 INNER_CAP
   3) 帧 RMS 裁掉首尾（含低电平衰减尾巴）
-  4) 仅对语音变速；标记 slow 的句子额外乘 SLOW_FACTOR（稿件「放慢」）
+  4) 仅对语音变速（稿件「放慢」标记不做处理：实测放慢不自然，以自然听感为先）
   5) 按 plan 的 lead 精确插入停顿（构造保证 ≤ CAP，无需事后压缩 → 不会失步）
   6) 全局去沙哑 EQ + 响度
 产物：<job>/audio/full.wav 与 <job>/audio/durations.json（供字幕与画面对齐）
 
 用法: audio_build.py <src_job> <dst_job> [speed]
-环境: BREATH_ATT(默认0.10=-20dB) SLOW_FACTOR(默认0.75)
+环境: BREATH_ATT(默认0.10=-20dB)
 """
 import json
 import os
@@ -94,14 +94,14 @@ def trim(y, thr=TRIM_THR, margin=0.015, sr=SR):
     return y[max(0, idx[0] - m) * H: min(n, idx[-1] + 1 + m) * H]
 
 
-def build(src_job, dst_job, speed=1.1, att=0.10, slow_factor=0.75, ffmpeg=None, log=print):
+def build(src_job, dst_job, speed=1.1, att=0.10, ffmpeg=None, log=print):
     ffmpeg = ffmpeg or os.environ.get('FFMPEG_BIN', '/Users/Admin/.hermes/bin/ffmpeg')
     plan = json.load(open(os.path.join(src_job, 'plan.json'), encoding='utf-8'))
     cues = plan['cues']
     os.makedirs(os.path.join(dst_job, 'audio'), exist_ok=True)
     t1, t2 = os.path.join(dst_job, '_t.wav'), os.path.join(dst_job, '_t2.wav')
 
-    speech, nbr, nslow = [], 0, 0
+    speech, nbr = [], 0
     for c in cues:
         y, sr = sf.read(os.path.join(src_job, 'audio_src', f"seg_{c['i']:02d}.wav"))
         if y.ndim > 1:
@@ -110,9 +110,7 @@ def build(src_job, dst_job, speed=1.1, att=0.10, slow_factor=0.75, ffmpeg=None, 
         y, k = debreath(y, att); nbr += k          # 1
         y = cap_silence(y)                          # 2
         y = trim(y)                                 # 3
-        sp = speed * (slow_factor if c.get('slow') else 1.0)   # 4
-        if c.get('slow'):
-            nslow += 1
+        sp = speed                                  # 4（不做逐句放慢）
         if abs(sp - 1.0) > 1e-6 and len(y):
             sf.write(t1, y, SR)
             subprocess.run([ffmpeg, '-y', '-v', 'error', '-i', t1, '-filter:a', f'atempo={sp}',
@@ -144,7 +142,7 @@ def build(src_job, dst_job, speed=1.1, att=0.10, slow_factor=0.75, ffmpeg=None, 
     for f in (t1, t2, raw):
         if os.path.exists(f):
             os.remove(f)
-    log(f'>> {len(cues)}句 速度{speed} 放慢{nslow}句 去换气{nbr}处 '
+    log(f'>> {len(cues)}句 速度{speed} 去换气{nbr}处 '
         f'时长{post/60:.1f}分 漂移{abs(post-pre)*1000:.0f}ms')
     return full
 
@@ -152,5 +150,4 @@ def build(src_job, dst_job, speed=1.1, att=0.10, slow_factor=0.75, ffmpeg=None, 
 if __name__ == '__main__':
     build(sys.argv[1], sys.argv[2],
           speed=float(sys.argv[3]) if len(sys.argv) > 3 else 1.1,
-          att=float(os.environ.get('BREATH_ATT', '0.10')),
-          slow_factor=float(os.environ.get('SLOW_FACTOR', '0.75')))
+          att=float(os.environ.get('BREATH_ATT', '0.10')))

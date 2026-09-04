@@ -2,6 +2,11 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/) 与 [SemVer](https://semver.org/lang/zh-CN/)。
 
+## [0.3.1] - 2026-09-04
+
+### Removed
+- **移除「放慢」逐句变速**：稿件 `（放慢…）` 标记不再触发降速。实测放慢后听感机械、不自然；改为整行跳过、不产生停顿，**以自然听感为先**。相应删除 `SLOW_FACTOR` 配置与 `plan.cues[].slow` 字段。
+
 ## [0.3.0] - 2026-09-04
 
 ### Added

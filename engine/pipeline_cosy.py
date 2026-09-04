@@ -29,7 +29,6 @@ def _venv_run(script: str, *args: str) -> None:
     env = dict(os.environ)
     env['PYTORCH_ENABLE_MPS_FALLBACK'] = '1'
     env.setdefault('BREATH_ATT', str(config.BREATH_ATT))
-    env.setdefault('SLOW_FACTOR', str(config.SLOW_FACTOR))
     env.setdefault('COSY_REF', config.COSY_REF)
     env.setdefault('COSY_RT', config.COSY_RT)
     r = subprocess.run([config.COSY_VENV, os.path.join(config.HERE, script), *args],

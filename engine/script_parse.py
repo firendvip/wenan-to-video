@@ -8,7 +8,7 @@
 - 停顿（上限 CAP=1 秒）：开头 1.0；（停）0.5；（停一拍/停一秒再开口/停两拍）1.0；
   `……` 独立成行 1.0；`---` 分隔线 1.0；跨 `###` 小标题 0.8。
 - 句间默认停顿按上一句末标点分级（不再统一）：。！？→0.45；，、；：→0.25；其他→0.40。
-- `（放慢…）` 标记：下一句放慢（slow=True），由 audio_build 按 SLOW_FACTOR 单独变速。
+- `（放慢…）` 标记：**不做放慢**（实测机械、不自然），整行跳过、也不产生停顿——以自然听感为先。
 """
 from __future__ import annotations
 import json
@@ -67,7 +67,6 @@ def parse_cues(md_text: str) -> list[dict]:
     lines = md_text.split('\n')
     cues: list[dict] = []
     pending = 0.0        # 下一句之前的停顿
-    slow_next = False
 
     for raw in _body(lines):
         s = raw.strip()
@@ -78,9 +77,6 @@ def parse_cues(md_text: str) -> list[dict]:
             continue
         if s.startswith('#') or s.startswith('>') or s.startswith('|'):
             continue
-        if '放慢' in s and re.fullmatch(r'（[^）]*）', s):
-            slow_next = True
-            continue
         p = _pause_of(s)
         if p is not None:
             pending = max(pending, min(p, CAP))
@@ -89,11 +85,7 @@ def parse_cues(md_text: str) -> list[dict]:
         if not t:
             continue
         lead = pending if pending > 0 else (_gap_after(cues[-1]['text']) if cues else 0.0)
-        cue = {'i': len(cues) + 1, 'text': t, 'lead': round(min(lead, CAP), 3)}
-        if slow_next:
-            cue['slow'] = True
-            slow_next = False
-        cues.append(cue)
+        cues.append({'i': len(cues) + 1, 'text': t, 'lead': round(min(lead, CAP), 3)})
         pending = 0.0
 
     if cues:                                        # 引子第一句之前先空一秒

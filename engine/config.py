@@ -58,7 +58,6 @@ COSY_DIR = os.environ.get("COSY_DIR", os.path.expanduser("~/CosyVoice"))
 COSY_REF = os.environ.get("COSY_REF", os.path.expanduser("~/voice-rec/REF_FINAL3.wav"))
 COSY_RT = os.environ.get("COSY_RT", "春天的清晨，山谷里飘着薄雾，风从林间穿过，两只喜鹊落在枝头，叫声清脆，老人推开木窗，深深吸了一口气。")
 BREATH_ATT = float(os.environ.get("BREATH_ATT", "0.10"))   # 去换气衰减(0.10=-20dB)
-SLOW_FACTOR = float(os.environ.get("SLOW_FACTOR", "0.75")) # 稿件「放慢」句的额外倍率
 
 
 
