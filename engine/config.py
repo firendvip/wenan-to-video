@@ -52,6 +52,15 @@ EDGE_TTS = _tool("EDGE_TTS_BIN", "edge-tts", os.path.expanduser("~/.local/bin/ed
 VOICE_ENGINE_DEFAULT = os.environ.get("VOICE_ENGINE", "edge")
 EDGE_VOICE_DEFAULT = "zh-CN-XiaoxiaoNeural"   # 晓晓 · 亲和女声
 
+# ---- CosyVoice3 声音克隆（我的声音）----
+COSY_VENV = os.environ.get("COSY_VENV", os.path.expanduser("~/CosyVoice/.venv/bin/python"))
+COSY_DIR = os.environ.get("COSY_DIR", os.path.expanduser("~/CosyVoice"))
+COSY_REF = os.environ.get("COSY_REF", os.path.expanduser("~/voice-rec/REF_FINAL3.wav"))
+COSY_RT = os.environ.get("COSY_RT", "春天的清晨，山谷里飘着薄雾，风从林间穿过，两只喜鹊落在枝头，叫声清脆，老人推开木窗，深深吸了一口气。")
+BREATH_ATT = float(os.environ.get("BREATH_ATT", "0.10"))   # 去换气衰减(0.10=-20dB)
+SLOW_FACTOR = float(os.environ.get("SLOW_FACTOR", "0.75")) # 稿件「放慢」句的额外倍率
+
+
 
 def _load_llm() -> dict:
     """本地 LLM 配置（密钥不写进源码）：webapp/llm.json 或环境变量。"""

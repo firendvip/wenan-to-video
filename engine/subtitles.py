@@ -149,6 +149,8 @@ def write_ass(job_dir: str) -> str:
         d = float(c.get("dur", 0.8))
         span = float(c.get("slot", d))
         txt = text_by_i.get(i, c.get("text", "")).replace("\n", " ").strip()
+        if not txt:            # 停顿/静音句：不画字幕
+            continue
         pieces = split_lines(txt, PA["single"], PA["hard"])
         W = sum(_wsum(p) for p in pieces) or 1.0
         cum = 0.0
